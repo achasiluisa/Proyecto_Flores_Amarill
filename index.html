@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Para Daya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream-top:   #fffaf0;
+    --cream-bot:   #fdf1cf;
+    --petal-gold:  #f2c230;
+    --petal-light: #fce9a8;
+    --petal-shade: #d99e1f;
+    --leaf-deep:   #4b5a34;
+    --leaf-soft:   #7c8f56;
+    --ink:         #3d3221;
+    --ink-soft:    #6b5d43;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html, body{
+    min-height:100dvh;
+    margin:0;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  body{
+    background: linear-gradient(180deg, var(--cream-top) 0%, var(--cream-bot) 100%);
+    font-family:'Jost', sans-serif;
+    color: var(--ink);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .scene{
+    position:relative;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding-top: max(11vh, 64px);
+    padding-bottom: 4vh;
+  }
+
+  /* ---------- watercolor wash, painted across the whole page ---------- */
+  .watercolor-bg{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .watercolor-bg svg{ width:100%; height:100%; display:block; }
+  .wc-grain{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+  }
+
+  /* soft light wash, appears first */
+  .glow{
+    position:absolute;
+    top:-20%;
+    left:50%;
+    width:140vw;
+    height:70vh;
+    transform:translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(252,233,168,0.65) 0%, rgba(252,233,168,0) 65%);
+    opacity:0;
+    animation: glowIn 3s ease-out forwards;
+    pointer-events:none;
+  }
+  @keyframes glowIn{
+    to{ opacity:1; }
+  }
+
+  /* ---------- falling petals ---------- */
+  .petal-field{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:2;
+  }
+  .petal{
+    position:absolute;
+    top:-5vh;
+    opacity:0;
+    animation-name: fall, sway;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: 1, infinite;
+  }
+  .petal svg{ display:block; filter: drop-shadow(0 2px 3px rgba(120,90,10,0.15)); }
+  @keyframes fall{
+    0%   { opacity:0; transform: translateY(0) rotate(0deg); }
+    6%   { opacity:0.95; }
+    92%  { opacity:0.9; }
+    100% { opacity:0; transform: translateY(108vh) rotate(200deg); }
+  }
+  @keyframes sway{
+    0%,100%{ margin-left:-22px; }
+    50%    { margin-left:22px; }
+  }
+
+  /* ---------- text ---------- */
+  .content{
+    position:relative;
+    z-index:3;
+    max-width: 560px;
+    padding: 4vh 8vw 0;
+    text-align:center;
+  }
+
+  .content.below{
+    padding: 0 8vw 4vh;
+  }
+
+  .eyebrow{
+    font-family:'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(0.98rem, 3vw, 1.15rem);
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+
+  .name{
+    font-family:'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: clamp(2.6rem, 9vw, 4rem);
+    color: var(--ink);
+    margin: 0.2em 0 0.5em;
+  }
+
+  .message p{
+    font-family:'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: clamp(1.15rem, 3.6vw, 1.45rem);
+    line-height: 1.65;
+    color: var(--ink);
+    margin: 0 0 0.9em;
+    opacity:0;
+    transform: translateY(14px);
+    transition: opacity 1.1s ease, transform 1.1s ease;
+  }
+  .message p.visible{ opacity:1; transform: translateY(0); }
+
+  .sign{
+    font-family:'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--ink-soft);
+    margin-top: 1.6em;
+    opacity:0;
+    transform: translateY(10px);
+    transition: opacity 1.2s ease, transform 1.2s ease;
+  }
+  .sign.visible{ opacity:1; transform: translateY(0); }
+
+  .replay-btn{
+    display:inline-block;
+    margin-top: 1.9em;
+    padding: 0.55em 1.2em;
+    border: 1px solid rgba(107,93,67,0.3);
+    border-radius: 999px;
+    background: transparent;
+    font-family:'Jost', sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+    cursor: pointer;
+    opacity:0;
+    transform: translateY(8px);
+    transition: opacity 0.9s ease, transform 0.9s ease, background 0.2s ease;
+    pointer-events:none;
+  }
+  .replay-btn.visible{ opacity:1; transform: translateY(0); pointer-events:auto; }
+  .replay-btn:hover{ background: rgba(242,194,48,0.12); }
+
+  /* ---------- the little story, told in short lines before the card ---------- */
+  .story{
+    position:relative;
+    min-height: 7.4rem;
+    max-width: 560px;
+    margin: 3vh auto 0;
+    padding: 0 8vw;
+  }
+  .story-line{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    font-family:'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(1.05rem, 3.3vw, 1.3rem);
+    line-height:1.5;
+    color: var(--ink-soft);
+    opacity:0;
+    transform: translateY(8px);
+    transition: opacity 0.9s ease, transform 0.9s ease;
+    pointer-events:none;
+  }
+  .story-line.visible{ opacity:1; transform: translateY(0); }
+
+  .final-beat{
+    flex-direction: column;
+    opacity:0;
+    transform: translateY(10px);
+    transition: opacity 1.1s ease, transform 1.1s ease;
+  }
+  .final-beat.visible{ opacity:1; transform: translateY(0); }
+
+  .sprig{
+    opacity:0;
+    animation: leafIn 0.9s ease-out forwards;
+  }
+
+  /* ---------- bouquet stage ---------- */
+  .meadow{
+    position:relative;
+    width:100%;
+    max-width: 1000px;
+    height: 48vh;
+    min-height: 300px;
+    max-height: 480px;
+    margin: 1vh auto;
+    z-index:1;
+  }
+  .meadow svg{
+    position:absolute;
+    bottom:0; left:0;
+    transform-origin: bottom center;
+    transform: scaleY(0.05);
+    animation: grow 1.6s cubic-bezier(.2,.9,.25,1) forwards;
+    overflow: visible;
+  }
+
+  @keyframes grow{
+    to{ transform: scaleY(1); }
+  }
+
+  .ground{
+    position:absolute;
+    bottom:0; left:0; right:0;
+    height: 40%;
+    background: linear-gradient(180deg, rgba(124,143,86,0) 0%, rgba(107,124,73,0.22) 100%);
+    z-index:0;
+  }
+
+  /* stems drawing in */
+  .stem{
+    fill:none;
+    stroke: url(#stemGrad);
+    stroke-width:5;
+    stroke-linecap:round;
+    stroke-dasharray:1;
+    stroke-dashoffset:1;
+    animation-name: drawStem;
+    animation-timing-function: ease-out;
+    animation-fill-mode: forwards;
+  }
+  @keyframes drawStem{ to{ stroke-dashoffset:0; } }
+
+  /* leaves unfurling along the stems */
+  .leaf{
+    fill: var(--leaf-soft);
+    opacity:0;
+    transform: scale(0.25);
+    transform-box: fill-box;
+    transform-origin: 0% 50%;
+    animation: leafIn 0.6s ease-out forwards;
+  }
+  @keyframes leafIn{ to{ opacity:1; transform: scale(1); } }
+
+  /* hero flower — each petal unfurls on its own */
+  .petal-hero{
+    opacity:0;
+    transform: scale(0.12);
+    animation-name: petalUnfurl;
+    animation-duration: 0.55s;
+    animation-timing-function: cubic-bezier(.22,.9,.3,1.05);
+    animation-fill-mode: forwards;
+  }
+  @keyframes petalUnfurl{ to{ opacity:1; transform: scale(1); } }
+
+  /* supporting flowers — bloom in as a whole, staggered, "building the bouquet" */
+  .flower-support{
+    opacity:0;
+    transform: scale(0.18) rotate(-14deg);
+    transform-box: fill-box;
+    transform-origin: center;
+    animation-name: bloomIn;
+    animation-duration: 0.6s;
+    animation-timing-function: cubic-bezier(.22,.9,.3,1.05);
+    animation-fill-mode: forwards;
+  }
+  @keyframes bloomIn{ to{ opacity:1; transform: scale(1) rotate(0deg); } }
+
+  .flower-center{
+    fill: url(#centerGrad);
+    opacity:0;
+    transform: scale(0.2);
+    transform-box: fill-box;
+    transform-origin: center;
+    animation-name: centerPop;
+    animation-duration: 0.4s;
+    animation-timing-function: ease-out;
+    animation-fill-mode: forwards;
+  }
+  @keyframes centerPop{ to{ opacity:1; transform: scale(1); } }
+
+  /* ribbon tying the bouquet together */
+  .ribbon-group{
+    opacity:0;
+    transform: scale(0.72) translateY(8px);
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ribbonIn 0.75s cubic-bezier(.22,.9,.3,1.05) forwards;
+  }
+  @keyframes ribbonIn{ to{ opacity:1; transform: scale(1) translateY(0); } }
+
+  /* soft sparkles once the bouquet is complete */
+  .sparkle{
+    opacity:0;
+    transform: scale(0.4);
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: twinkle 2.8s ease-in-out infinite;
+  }
+  @keyframes twinkle{
+    0%, 100%{ opacity:0; transform: scale(0.4); }
+    50%     { opacity:0.85; transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .petal, .glow, .message p, .sign, .meadow svg,
+    .stem, .leaf, .petal-hero, .flower-support, .flower-center, .ribbon-group, .sparkle,
+    .story-line, .final-beat, .sprig, .bouquet-hold, .burst-dot{
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      stroke-dashoffset: 0 !important;
+      position: static !important;
+    }
+  }
+
+  /* ---------- little extras: sound, replay, secrets ---------- */
+  .ui-btn{
+    position: fixed;
+    z-index: 5;
+    border: none;
+    background: rgba(255,251,240,0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    color: var(--ink-soft);
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(120,90,10,0.14);
+  }
+  .sound-btn{
+    top: calc(env(safe-area-inset-top,0px) + 14px);
+    right: 14px;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    font-size: 1.05rem;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .bouquet-hint{
+    text-align:center;
+    font-family:'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    opacity: 0;
+    margin: 0.3em 0 0;
+    transition: opacity 1.4s ease;
+  }
+  .bouquet-hint.visible{ opacity: 0.7; }
+
+  .secret-box{
+    position: fixed;
+    left: 50%;
+    bottom: max(5vh, 26px);
+    transform: translateX(-50%) translateY(12px);
+    width: min(86vw, 340px);
+    padding: 0.9em 1.25em;
+    background: #fffdf6;
+    border: 1px solid rgba(217,158,31,0.35);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(120,90,10,0.2);
+    font-family:'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.02rem;
+    line-height:1.4;
+    color: var(--ink);
+    text-align: center;
+    opacity: 0;
+    z-index: 6;
+    pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .secret-box.visible{ opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .flower-hero, .flower-support{ cursor: pointer; }
+
+  .bouquet-hold{
+    transform-box: view-box;
+    transform-origin: 450px 555px;
+    animation: breathe 4.6s ease-in-out infinite;
+  }
+  @keyframes breathe{
+    0%,100%{ transform: rotate(-0.55deg) translateY(0); }
+    50%    { transform: rotate(0.55deg) translateY(-2px); }
+  }
+
+  .burst-dot{
+    opacity:0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: burstPop 0.7s ease-out forwards;
+  }
+  @keyframes burstPop{
+    0%  { opacity:0; transform: scale(0.3); }
+    30% { opacity:1; transform: scale(1.3); }
+    100%{ opacity:0; transform: scale(0.6) translateY(-14px); }
+  }
+</style>
+</head>
+<body>
+
+<div class="watercolor-bg">
+  <svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="wcWash" x="-60%" y="-60%" width="220%" height="220%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="11" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="26" xChannelSelector="R" yChannelSelector="G" result="rough"/>
+        <feGaussianBlur in="rough" stdDeviation="5"/>
+      </filter>
+      <filter id="wcGrain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" result="grain"/>
+        <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0.3  0 0 0 0 0.24  0 0 0 0 0.1  0 0 0 0.5 0"/>
+      </filter>
+    </defs>
+    <path d="M10,220 C50,190 110,195 130,235 C150,275 110,310 60,305 C15,300 -20,255 10,220 Z" fill="#fbe18a" opacity="0.32" filter="url(#wcWash)"/>
+    <path d="M70,110 C100,90 140,100 145,135 C150,170 110,190 80,175 C52,161 46,128 70,110 Z" fill="#fdf1cf" opacity="0.4" filter="url(#wcWash)"/>
+    <g transform="translate(55,72) rotate(-12) scale(3.9) translate(-16,-13)">
+      <path d="M16,26 C16,26 1.5,14.6 1.5,7.3 C1.5,2.7 5.3,-0.2 9.7,1 C12.5,1.8 16,5 16,5 C16,5 19.5,1.7 22.5,0.8 C26.7,-0.3 30.4,2.6 30.4,7.3 C30.4,14.6 16,26 16,26 Z" fill="url(#heartFillGrad)" opacity="0.4" filter="url(#wcWash)"/>
+    </g>
+    <g transform="translate(148,232) rotate(16) scale(4.6) translate(-16,-13)">
+      <path d="M16,26 C16,26 1.5,14.6 1.5,7.3 C1.5,2.7 5.3,-0.2 9.7,1 C12.5,1.8 16,5 16,5 C16,5 19.5,1.7 22.5,0.8 C26.7,-0.3 30.4,2.6 30.4,7.3 C30.4,14.6 16,26 16,26 Z" fill="#e8b563" opacity="0.36" filter="url(#wcWash)"/>
+    </g>
+    <g transform="translate(178,52) rotate(-22) scale(2.5) translate(-16,-13)">
+      <path d="M16,26 C16,26 1.5,14.6 1.5,7.3 C1.5,2.7 5.3,-0.2 9.7,1 C12.5,1.8 16,5 16,5 C16,5 19.5,1.7 22.5,0.8 C26.7,-0.3 30.4,2.6 30.4,7.3 C30.4,14.6 16,26 16,26 Z" fill="#f2c230" opacity="0.3" filter="url(#wcWash)"/>
+    </g>
+    <g transform="translate(26,255) rotate(9) scale(2.1) translate(-16,-13)">
+      <path d="M16,26 C16,26 1.5,14.6 1.5,7.3 C1.5,2.7 5.3,-0.2 9.7,1 C12.5,1.8 16,5 16,5 C16,5 19.5,1.7 22.5,0.8 C26.7,-0.3 30.4,2.6 30.4,7.3 C30.4,14.6 16,26 16,26 Z" fill="#e9c9a0" opacity="0.3" filter="url(#wcWash)"/>
+    </g>
+    <g transform="translate(112,18) rotate(-7) scale(1.9) translate(-16,-13)">
+      <path d="M16,26 C16,26 1.5,14.6 1.5,7.3 C1.5,2.7 5.3,-0.2 9.7,1 C12.5,1.8 16,5 16,5 C16,5 19.5,1.7 22.5,0.8 C26.7,-0.3 30.4,2.6 30.4,7.3 C30.4,14.6 16,26 16,26 Z" fill="#d99e1f" opacity="0.22" filter="url(#wcWash)"/>
+    </g>
+  </svg>
+  <svg class="wc-grain" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" filter="url(#wcGrain)"/>
+  </svg>
+</div>
+
+<div class="scene">
+  <div class="glow"></div>
+
+  <div class="story" id="story">
+    <p class="story-line" id="cap1">Todo comenzó con un solo tallo,</p>
+    <p class="story-line" id="cap2">que se atrevió a abrir, despacio, pétalo a pétalo.</p>
+    <p class="story-line" id="cap3">Y no tardó en no estar sola: una a una, se le fueron sumando más flores,</p>
+    <p class="story-line" id="cap4">hasta formar un ramo entero, atado con cariño.</p>
+    <div class="story-line final-beat" id="finalBeat">
+      <p class="eyebrow">Dicen que cada 21 de septiembre, las flores amarillas encuentran a quien las merece.</p>
+      <h1 class="name">Daya</h1>
+    </div>
+  </div>
+
+  <div class="ground"></div>
+  <div class="meadow" id="meadow"></div>
+  <p class="bouquet-hint" id="bouquetHint">toca una flor…</p>
+
+  <div class="content below">
+    <div class="message">
+      <p>Este 21 de septiembre tal vez no son flores físicas, pero están hechas con el mismo cariño y significado que las de verdad.</p>
+      <p>Eres una mujer hermosa, inteligente, y aunque todavía te sigo conociendo, ya sé que te gusta que te consientan.</p>
+      <p>Feliz 21 de septiembre, espero que te gusten tus flores amarillas, Daya.</p>
+    </div>
+    <p class="sign">&mdash; Santiago</p>
+    <button class="replay-btn" id="replayBtn" type="button">&#8635; ver de nuevo</button>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="heartFillGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fdf0c0"/>
+      <stop offset="50%" stop-color="#f2c230"/>
+      <stop offset="100%" stop-color="#c9860f"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="petal-field" id="petalField"></div>
+<button class="ui-btn sound-btn" id="soundToggle" type="button" aria-label="Activar sonido" title="Sonido (opcional)">&#128264;</button>
+<div class="secret-box" id="secretBox"></div>
+
+<script>
+(function(){
+  const meadow = document.getElementById('meadow');
+  const NS = 'http://www.w3.org/2000/svg';
+  const baseX = 450, baseY = 555;
+
+  // ---------- optional, gentle sound (synthesized — no files, no autoplay) ----------
+  let audioCtx = null, soundOn = false;
+  const soundBtn = document.getElementById('soundToggle');
+  function ensureAudio(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ audioCtx = null; }
+    }
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function chime(freqs, gainPeak){
+    if(!soundOn || !audioCtx) return;
+    const t0 = audioCtx.currentTime + 0.02;
+    freqs.forEach((f,i)=>{
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const start = t0 + i*0.09;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(gainPeak || 0.05, start + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.1);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(start); osc.stop(start + 1.2);
+    });
+  }
+  soundBtn.addEventListener('click', ()=>{
+    ensureAudio();
+    soundOn = !soundOn;
+    soundBtn.innerHTML = soundOn ? '&#128266;' : '&#128264;';
+    soundBtn.setAttribute('aria-label', soundOn ? 'Silenciar' : 'Activar sonido');
+    if(soundOn) chime([523.25, 659.25, 783.99]);
+  });
+
+  // ---------- little secrets, revealed by touching a flower ----------
+  const secrets = [
+    'Un secreto: cada pétalo lo pensé para vos. 🌼',
+    'Esta la hice con más cuidado del que quiero admitir. ✨',
+    'Ojalá algún día te las pueda dar de verdad. 🌼',
+    'Gracias por dejarme alegrarte el día. 💛',
+    'Espero que esto te haya sacado una sonrisa. 🤍'
+  ];
+  let lastSecret = -1;
+  const secretBox = document.getElementById('secretBox');
+  let secretTimer = null;
+  function revealSecret(){
+    let idx = Math.floor(Math.random()*secrets.length);
+    if(idx === lastSecret) idx = (idx+1) % secrets.length;
+    lastSecret = idx;
+    secretBox.textContent = secrets[idx];
+    secretBox.classList.add('visible');
+    clearTimeout(secretTimer);
+    secretTimer = setTimeout(()=> secretBox.classList.remove('visible'), 4200);
+  }
+  function sparkleBurst(svg, cx, cy){
+    if(!svg) return;
+    const g = document.createElementNS(NS,'g');
+    let inner = '';
+    for(let i=0;i<5;i++){
+      const a = Math.random()*360, d = 10+Math.random()*16;
+      const x = cx + Math.cos(a*Math.PI/180)*d;
+      const y = cy + Math.sin(a*Math.PI/180)*d;
+      inner += `<circle class="burst-dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(2+Math.random()*2).toFixed(1)}" fill="var(--petal-light)" style="animation-delay:${(i*0.03).toFixed(2)}s;"/>`;
+    }
+    g.innerHTML = inner;
+    svg.appendChild(g);
+    setTimeout(()=> g.remove(), 900);
+  }
+
+  // ---------- shape helpers ----------
+  function petalPath(cx,cy,len,baseW){
+    return `M ${cx} ${cy}
+      C ${cx-baseW} ${cy-len*0.34} ${cx-baseW*0.8} ${cy-len*0.86} ${cx} ${cy-len}
+      C ${cx+baseW*0.8} ${cy-len*0.86} ${cx+baseW} ${cy-len*0.34} ${cx} ${cy} Z`;
+  }
+  function petalLayer(cx, cy, count, len, baseW, rotOffset, grad, filter){
+    let g = '';
+    for(let k=0;k<count;k++){
+      const jitterA = (Math.random()-0.5)*10;
+      const jitterL = 0.92 + Math.random()*0.18;
+      const angle = (360/count)*k + rotOffset + jitterA;
+      const d = petalPath(cx,cy,len*jitterL, baseW*jitterL);
+      g += `<g transform="rotate(${angle.toFixed(1)} ${cx} ${cy})"><path d="${d}" fill="url(#${grad})"${filter?` filter="url(#${filter})"`:''}/></g>`;
+    }
+    return g;
+  }
+  function centerDots(cx, cy, centerR){
+    let dots = '';
+    for(let s=0;s<6;s++){
+      const a = (360/6)*s + Math.random()*20;
+      const dx = cx + Math.cos(a*Math.PI/180)*centerR*0.5;
+      const dy = cy + Math.sin(a*Math.PI/180)*centerR*0.5;
+      dots += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="${(centerR*0.13).toFixed(1)}" fill="#4a3510" opacity="0.45"/>`;
+    }
+    return dots;
+  }
+  function bezierPoint(t, p0, p1, p2){
+    const mt = 1-t;
+    return { x: mt*mt*p0.x + 2*mt*t*p1.x + t*t*p2.x, y: mt*mt*p0.y + 2*mt*t*p1.y + t*t*p2.y };
+  }
+  function bezierTangentDeg(t, p0, p1, p2){
+    const dx = 2*(1-t)*(p1.x-p0.x) + 2*t*(p2.x-p1.x);
+    const dy = 2*(1-t)*(p1.y-p0.y) + 2*t*(p2.y-p1.y);
+    return Math.atan2(dy,dx)*180/Math.PI;
+  }
+
+  // ---------- bouquet layout: hero folded into the crowd, not towering above it ----------
+  function generateSupportSpecs(){
+    const rings = [
+      {r:55,  count:5},
+      {r:100, count:5},
+      {r:145, count:4},
+      {r:188, count:4},
+      {r:228, count:3}
+    ];
+    const specs = [];
+    rings.forEach(ring => {
+      for(let i=0;i<ring.count;i++){
+        const t = ring.count === 1 ? 0.5 : i/(ring.count-1);
+        const angleDeg = -55 + t*110 + (Math.random()-0.5)*8;
+        const angleRad = angleDeg*Math.PI/180;
+        const rJ = ring.r * (0.88 + Math.random()*0.24);
+        const cx = 449 + Math.sin(angleRad)*rJ;
+        const cy = 172 + (1-Math.cos(angleRad))*rJ*0.32 + rJ*0.42 + (Math.random()-0.5)*12;
+        const scale = Math.max(0.52, 0.92 - ring.r*0.0013) * (0.9 + Math.random()*0.22);
+        const rot = Math.random()*360;
+        specs.push([Math.round(cx), Math.round(cy), +scale.toFixed(2), Math.round(rot)]);
+      }
+    });
+    return specs;
+  }
+
+  function buildHero(cx, cy, scale, startDelay, rotOffset){
+    const outerLen = 44*scale, midLen = 32*scale, innerLen = 20*scale;
+    const centerR = 8*scale;
+    let svg = '', cursor = startDelay;
+    const outerCount = 9;
+    for(let k=0;k<outerCount;k++){
+      const jitterA = (Math.random()-0.5)*8;
+      const angle = (360/outerCount)*k + rotOffset + jitterA;
+      const d = petalPath(cx,cy,outerLen*(0.94+Math.random()*0.12), outerLen*0.42);
+      svg += `<g transform="rotate(${angle.toFixed(1)} ${cx} ${cy})"><path class="petal-hero" data-cx="${cx}" data-cy="${cy}" d="${d}" fill="url(#petalBackGrad)" filter="url(#softShadow)" style="transform-origin:${cx}px ${cy}px; animation-delay:${cursor.toFixed(2)}s;"/></g>`;
+      cursor += 0.075;
+    }
+    cursor += 0.14;
+    const midCount = 7;
+    for(let k=0;k<midCount;k++){
+      const jitterA = (Math.random()-0.5)*8;
+      const angle = (360/midCount)*k + rotOffset + 18 + jitterA;
+      const d = petalPath(cx,cy,midLen*(0.94+Math.random()*0.12), midLen*0.46);
+      svg += `<g transform="rotate(${angle.toFixed(1)} ${cx} ${cy})"><path class="petal-hero" d="${d}" fill="url(#petalFrontGrad)" style="transform-origin:${cx}px ${cy}px; animation-delay:${cursor.toFixed(2)}s;"/></g>`;
+      cursor += 0.065;
+    }
+    cursor += 0.13;
+    const innerCount = 6;
+    for(let k=0;k<innerCount;k++){
+      const jitterA = (Math.random()-0.5)*10;
+      const angle = (360/innerCount)*k + rotOffset + 32 + jitterA;
+      const d = petalPath(cx,cy,innerLen*(0.94+Math.random()*0.14), innerLen*0.5);
+      svg += `<g transform="rotate(${angle.toFixed(1)} ${cx} ${cy})"><path class="petal-hero" d="${d}" fill="url(#petalInnerGrad)" style="transform-origin:${cx}px ${cy}px; animation-delay:${cursor.toFixed(2)}s;"/></g>`;
+      cursor += 0.06;
+    }
+    cursor += 0.16;
+    const centerDelay = cursor;
+    svg += `<circle class="flower-center" cx="${cx}" cy="${cy}" r="${centerR}" style="animation-delay:${centerDelay.toFixed(2)}s;"/>${centerDots(cx,cy,centerR)}`;
+    return { svg: `<g class="flower-hero" data-cx="${cx}" data-cy="${cy}">${svg}</g>`, finishTime: centerDelay + 0.4 };
+  }
+
+  function buildSupport(cx, cy, scale, baseDelay, rotOffset){
+    const outerLen = 39*scale, midLen = 26*scale, innerLen = 15*scale;
+    const centerR = 7.4*scale;
+    let svg = '';
+    svg += petalLayer(cx, cy, 8, outerLen, outerLen*0.44, rotOffset, 'petalBackGrad', 'softShadow');
+    svg += petalLayer(cx, cy, 6, midLen, midLen*0.48, rotOffset+20, 'petalFrontGrad');
+    svg += petalLayer(cx, cy, 5, innerLen, innerLen*0.52, rotOffset+38, 'petalInnerGrad');
+    svg += `<circle class="flower-center" cx="${cx}" cy="${cy}" r="${centerR}" style="animation-delay:${(baseDelay+0.28).toFixed(2)}s;"/>${centerDots(cx,cy,centerR)}`;
+    return {
+      svg: `<g class="flower-support" data-cx="${cx}" data-cy="${cy}" style="transform-origin:${cx}px ${cy}px; animation-delay:${baseDelay.toFixed(2)}s;">${svg}</g>`,
+      finishTime: baseDelay + 0.55
+    };
+  }
+
+  function buildBouquet(){
+    const hero = {cx:448, cy:178, scale:1.0};
+    const supportSpecs = generateSupportSpecs();
+    const flowersConfig = [{...hero, hero:true}].concat(
+      supportSpecs.map(([cx,cy,scale]) => ({cx,cy,scale,hero:false}))
+    );
+
+    // Phase 1 — every stem grows in, quick succession, leaves anchored to the real curve
+    const stemStagger = 0.045, stemDur = 0.7;
+    let stemsSvg = '', leavesSvg = '';
+    flowersConfig.forEach((f, i) => {
+      const headY = f.cy + f.scale*8;
+      const stemDelay = 0.15 + i*stemStagger;
+      const wobble = (i % 3 - 1) * 14;
+      const ctrlX = baseX + (f.cx-baseX)*0.42 + wobble;
+      const ctrlY = headY + (baseY-headY)*0.4;
+      stemsSvg += `<path class="stem" pathLength="1" d="M ${baseX} ${baseY} Q ${ctrlX.toFixed(1)} ${ctrlY.toFixed(1)} ${f.cx} ${headY.toFixed(1)}" style="animation-delay:${stemDelay.toFixed(2)}s; animation-duration:${stemDur}s;"/>`;
+
+      if(i % 2 === 0){
+        const p0 = {x:baseX,y:baseY}, p1 = {x:ctrlX,y:ctrlY}, p2 = {x:f.cx,y:headY};
+        const leafT = 0.46 + (i%4)*0.03;
+        const leafPos = bezierPoint(leafT, p0, p1, p2);
+        const tangent = bezierTangentDeg(leafT, p0, p1, p2);
+        const side = (i % 4 === 0) ? -1 : 1;
+        const leafAngle = tangent + side*62;
+        const leafDelay = stemDelay + stemDur*0.5;
+        leavesSvg += `<g transform="translate(${leafPos.x.toFixed(1)} ${leafPos.y.toFixed(1)}) rotate(${leafAngle.toFixed(1)})">
+          <path class="leaf" d="M0 0 Q 15 -8 29 0 Q 15 8 0 0 Z" style="animation-delay:${leafDelay.toFixed(2)}s;"/>
+        </g>`;
+      }
+    });
+    const allStemsDoneBy = 0.15 + (flowersConfig.length-1)*stemStagger + stemDur;
+
+    // Phase 2 — the hero flower blooms alone
+    const heroBloomStart = allStemsDoneBy + 0.3;
+    const heroBuilt = buildHero(hero.cx, hero.cy + hero.scale*8, hero.scale, heroBloomStart, Math.random()*360);
+    const heroFinish = heroBuilt.finishTime;
+
+    // Phase 3 — the rest of the bouquet joins in, one bloom after another
+    const supportWaveStart = heroFinish + 0.25, supportStagger = 0.065;
+    let flowersSvg = heroBuilt.svg;
+    const finishTimes = [heroFinish];
+    supportSpecs.forEach(([cx,cy,scale,rot], i) => {
+      const headY = cy + scale*8;
+      const baseDelay = supportWaveStart + i*supportStagger;
+      const built = buildSupport(cx, headY, scale, baseDelay, rot);
+      flowersSvg += built.svg;
+      finishTimes.push(built.finishTime);
+    });
+
+    // Phase 4 — the ribbon ties everything together
+    const ribbonDelay = Math.max(...finishTimes) + 0.2;
+    const ribbonSvg = `
+    <g class="ribbon-group" style="animation-delay:${ribbonDelay.toFixed(2)}s;">
+      <path d="M ${baseX-46} ${baseY-38} Q ${baseX} ${baseY-58} ${baseX+46} ${baseY-38} L ${baseX+40} ${baseY-4} Q ${baseX} ${baseY-20} ${baseX-40} ${baseY-4} Z" fill="url(#ribbonGrad)" filter="url(#softShadow)"/>
+      <path d="M ${baseX-30} ${baseY-20} C ${baseX-72} ${baseY-42} ${baseX-58} ${baseY+12} ${baseX-14} ${baseY-6} Z" fill="url(#ribbonGrad)"/>
+      <path d="M ${baseX+30} ${baseY-20} C ${baseX+72} ${baseY-42} ${baseX+58} ${baseY+12} ${baseX+14} ${baseY-6} Z" fill="url(#ribbonGrad)"/>
+      <ellipse cx="${baseX}" cy="${baseY-16}" rx="9" ry="7" fill="#cfa233"/>
+      <path d="M ${baseX-6} ${baseY-10} L ${baseX-17} ${baseY+36} L ${baseX-4} ${baseY+29} Z" fill="url(#ribbonGrad)"/>
+      <path d="M ${baseX+6} ${baseY-10} L ${baseX+17} ${baseY+36} L ${baseX+4} ${baseY+29} Z" fill="url(#ribbonGrad)"/>
+    </g>`;
+
+    // Phase 4b — foliage & gypsophila filling whatever white space is left
+    const foliageSpots = [[300,258],[596,250],[232,320],[664,314],[450,332],[392,182],[502,180],[188,240],[708,232],[344,302],[552,298],[420,215],[478,213]];
+    const sprigSpots = [[292,238],[604,232],[224,308],[672,302],[450,232],[382,336],[516,332],[560,150],[338,150],[416,300],[484,297]];
+    const foliageDelay = ribbonDelay - 0.15;
+    let foliageSvg = '';
+    foliageSpots.forEach(([fx,fy],i)=>{
+      const ang = (i*47)%360;
+      foliageSvg += `<g class="sprig" transform="rotate(${ang} ${fx} ${fy})" style="animation-delay:${(foliageDelay + (i%4)*0.05).toFixed(2)}s;">
+        <path d="M ${fx} ${fy} Q ${fx-16} ${fy-9} ${fx-30} ${fy} Q ${fx-16} ${fy+9} ${fx} ${fy} Z" fill="var(--leaf-soft)" opacity="0.85"/>
+      </g>`;
+    });
+    const sprigDelay = ribbonDelay + 0.05;
+    let sprigsSvg = '';
+    sprigSpots.forEach(([sx,sy]) => {
+      sprigsSvg += `<g class="sprig" style="animation-delay:${sprigDelay.toFixed(2)}s;">
+        <circle cx="${sx}" cy="${sy}" r="3.4" fill="#fff8e6"/>
+        <circle cx="${sx+6}" cy="${sy-4}" r="2.6" fill="#fdf1cf"/>
+        <circle cx="${sx-5}" cy="${sy+4}" r="2.6" fill="#fdf1cf"/>
+      </g>`;
+    });
+
+    // Phase 5 — soft sparkles once the bouquet is complete
+    const sparkleStart = ribbonDelay + 0.5;
+    const sparklePositions = [[520,84],[258,124],[652,152],[176,228],[734,222],[418,70]];
+    let sparklesSvg = '';
+    sparklePositions.forEach((p,i)=>{
+      const delay = sparkleStart + i*0.3;
+      sparklesSvg += `<g class="sparkle" transform="translate(${p[0]} ${p[1]})" style="animation-delay:${delay.toFixed(2)}s;">
+        <path d="M0 -9 L2 -2 L9 0 L2 2 L0 9 L-2 2 L-9 0 L-2 -2 Z" fill="var(--petal-light)"/>
+      </g>`;
+    });
+
+    const breatheDelay = ribbonDelay + 0.6;
+
+    meadow.innerHTML = `<svg viewBox="0 0 900 580" preserveAspectRatio="xMidYMid meet" xmlns="${NS}" style="width:100%; height:100%;">
+      <defs>
+        <radialGradient id="petalFrontGrad" cx="50%" cy="18%" r="90%">
+          <stop offset="0%" stop-color="var(--petal-light)"/>
+          <stop offset="55%" stop-color="var(--petal-gold)"/>
+          <stop offset="100%" stop-color="var(--petal-shade)"/>
+        </radialGradient>
+        <radialGradient id="petalBackGrad" cx="50%" cy="18%" r="90%">
+          <stop offset="0%" stop-color="var(--petal-gold)"/>
+          <stop offset="100%" stop-color="var(--petal-shade)"/>
+        </radialGradient>
+        <radialGradient id="petalInnerGrad" cx="50%" cy="22%" r="85%">
+          <stop offset="0%" stop-color="#fffbe9"/>
+          <stop offset="60%" stop-color="var(--petal-light)"/>
+          <stop offset="100%" stop-color="var(--petal-gold)"/>
+        </radialGradient>
+        <radialGradient id="centerGrad" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#a3711d"/>
+          <stop offset="100%" stop-color="#734d12"/>
+        </radialGradient>
+        <linearGradient id="stemGrad" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="var(--leaf-deep)"/>
+          <stop offset="100%" stop-color="var(--leaf-soft)"/>
+        </linearGradient>
+        <linearGradient id="ribbonGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#f7ecc9"/>
+          <stop offset="100%" stop-color="#e8cf8f"/>
+        </linearGradient>
+        <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#7a5a10" flood-opacity="0.18"/>
+        </filter>
+      </defs>
+      <g class="bouquet-hold" style="animation-delay:${breatheDelay.toFixed(2)}s;">
+        <g class="stems-layer">${stemsSvg}</g>
+        <g class="leaves-layer">${leavesSvg}</g>
+        <g class="foliage-layer">${foliageSvg}</g>
+        ${ribbonSvg}
+        <g class="flowers-layer">${flowersSvg}</g>
+        <g class="sprigs-layer">${sprigsSvg}</g>
+        <g class="sparkles-layer">${sparklesSvg}</g>
+      </g>
+    </svg>`;
+
+    const svgEl = meadow.querySelector('svg');
+    svgEl.querySelectorAll('.flower-hero, .flower-support').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const cx = parseFloat(el.getAttribute('data-cx'));
+        const cy = parseFloat(el.getAttribute('data-cy'));
+        chime([880 + Math.random()*220, 1174.66], 0.04);
+        sparkleBurst(svgEl, cx, cy);
+        revealSecret();
+      });
+    });
+
+    return { heroBloomStart, heroFinish, supportWaveStart, ribbonDelay, sparkleStart };
+  }
+
+  // ---------- falling petals, gentle & sparse ----------
+  const field = document.getElementById('petalField');
+  function petalMark(size, hue){
+    return `<svg width="${size}" height="${size*0.8}" viewBox="0 0 20 16" xmlns="${NS}">
+      <path d="M10 0 C15 2 20 6 10 16 C0 6 5 2 10 0 Z" fill="${hue}"/>
+    </svg>`;
+  }
+  function spawnPetal(){
+    const el = document.createElement('div');
+    el.className = 'petal';
+    const size = 14 + Math.random()*12;
+    const hue = Math.random() > 0.5 ? '#f2c230' : '#f6d564';
+    el.innerHTML = petalMark(size, hue);
+    const left = Math.random()*100;
+    const fallDur = 10 + Math.random()*7;
+    const swayDur = 2.6 + Math.random()*2;
+    const delay = Math.random()*1.2;
+    el.style.left = left + 'vw';
+    el.style.animationDuration = fallDur + 's, ' + swayDur + 's';
+    el.style.animationDelay = delay + 's, ' + delay + 's';
+    field.appendChild(el);
+    setTimeout(()=> el.remove(), (fallDur+delay+0.5)*1000);
+  }
+
+  // ---------- the whole story, orchestrated so it can be replayed ----------
+  let timeouts = [], ambientInterval = null;
+  function schedule(fn, seconds){ timeouts.push(setTimeout(fn, seconds*1000)); }
+  function clearSchedule(){ timeouts.forEach(clearTimeout); timeouts = []; }
+  function stopAmbient(){
+    if(ambientInterval){ clearInterval(ambientInterval); ambientInterval = null; }
+    document.querySelectorAll('.petal').forEach(el=>el.remove());
+  }
+  function show(el){ if(el) el.classList.add('visible'); }
+  function hide(el){ if(el) el.classList.remove('visible'); }
+
+  const cap1 = document.getElementById('cap1'), cap2 = document.getElementById('cap2');
+  const cap3 = document.getElementById('cap3'), cap4 = document.getElementById('cap4');
+  const finalBeat = document.getElementById('finalBeat');
+  const messageP = document.querySelectorAll('.message p');
+  const signEl = document.querySelector('.sign');
+  const replayBtn = document.getElementById('replayBtn');
+  const hintEl = document.getElementById('bouquetHint');
+
+  function runStory(){
+    clearSchedule();
+    stopAmbient();
+    [cap1,cap2,cap3,cap4].forEach(hide);
+    hide(finalBeat); hide(signEl); hide(replayBtn); hide(hintEl);
+    messageP.forEach(hide);
+    secretBox.classList.remove('visible');
+
+    const t = buildBouquet();
+
+    schedule(()=>show(cap1), 0.3);
+    schedule(()=>hide(cap1), 1.9);
+    schedule(()=>show(cap2), t.heroBloomStart + 0.1);
+    schedule(()=>hide(cap2), t.heroFinish + 0.3);
+    schedule(()=>{ chime([659.25, 987.77], 0.035); }, t.heroFinish);
+    schedule(()=>show(cap3), t.supportWaveStart + 0.05);
+    schedule(()=>hide(cap3), t.ribbonDelay - 0.05);
+    schedule(()=>show(cap4), t.ribbonDelay + 0.05);
+    schedule(()=>hide(cap4), t.ribbonDelay + 1.25);
+    schedule(()=>{ chime([523.25, 659.25, 783.99, 987.77], 0.035); }, t.ribbonDelay);
+    schedule(()=>show(finalBeat), t.ribbonDelay + 1.35);
+    schedule(()=>show(hintEl), t.ribbonDelay + 2.0);
+    schedule(()=>hide(hintEl), t.ribbonDelay + 8.0);
+    schedule(()=>show(messageP[0]), t.ribbonDelay + 2.55);
+    schedule(()=>show(messageP[1]), t.ribbonDelay + 3.25);
+    schedule(()=>show(messageP[2]), t.ribbonDelay + 3.95);
+    schedule(()=>show(signEl), t.ribbonDelay + 4.75);
+    schedule(()=>show(replayBtn), t.ribbonDelay + 5.3);
+    schedule(()=>{
+      spawnPetal();
+      ambientInterval = setInterval(spawnPetal, 2400);
+    }, t.ribbonDelay + 5.8);
+  }
+
+  replayBtn.addEventListener('click', runStory);
+  runStory();
+})();
+</script>
+
+</body>
+</html>
